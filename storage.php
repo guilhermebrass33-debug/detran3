@@ -5,6 +5,105 @@ function app_is_vercel(): bool
     return getenv('VERCEL') === '1' || getenv('VERCEL_ENV') !== false;
 }
 
+function app_kv_url(): string
+{
+    $url = getenv('KV_REST_API_URL');
+    if ($url === false || $url === '') {
+        $url = getenv('UPSTASH_REDIS_REST_URL');
+    }
+
+    return rtrim((string) ($url ?: ''), '/');
+}
+
+function app_kv_token(): string
+{
+    $token = getenv('KV_REST_API_TOKEN');
+    if ($token === false || $token === '') {
+        $token = getenv('UPSTASH_REDIS_REST_TOKEN');
+    }
+
+    return (string) ($token ?: '');
+}
+
+function app_kv_enabled(): bool
+{
+    return app_kv_url() !== '' && app_kv_token() !== '';
+}
+
+function app_kv_prefix(): string
+{
+    $prefix = getenv('KV_KEY_PREFIX');
+
+    return (string) ($prefix !== false && $prefix !== '' ? $prefix : 'es-vercel');
+}
+
+function app_kv_key(string $fileName): string
+{
+    return app_kv_prefix() . ':json:' . basename($fileName);
+}
+
+function app_kv_exec(array $command): ?array
+{
+    if (!app_kv_enabled()) {
+        return null;
+    }
+
+    $ch = curl_init(app_kv_url());
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => json_encode($command, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+        CURLOPT_HTTPHEADER => [
+            'Authorization: Bearer ' . app_kv_token(),
+            'Content-Type: application/json',
+        ],
+        CURLOPT_TIMEOUT => 20,
+    ]);
+
+    $raw = curl_exec($ch);
+    $curlError = curl_error($ch);
+    $statusCode = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+    curl_close($ch);
+
+    if ($raw === false || $curlError !== '' || $statusCode >= 400) {
+        return null;
+    }
+
+    $decoded = json_decode((string) $raw, true);
+
+    return is_array($decoded) ? $decoded : null;
+}
+
+function app_kv_read_json(string $fileName, array $default = []): array
+{
+    $response = app_kv_exec(['GET', app_kv_key($fileName)]);
+    $value = $response['result'] ?? null;
+
+    if (!is_string($value) || $value === '') {
+        return $default;
+    }
+
+    $decoded = json_decode($value, true);
+
+    return is_array($decoded) ? $decoded : $default;
+}
+
+function app_kv_write_json(string $fileName, array $data): bool
+{
+    $encoded = json_encode(
+        $data,
+        JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+    );
+
+    if ($encoded === false) {
+        return false;
+    }
+
+    $response = app_kv_exec(['SET', app_kv_key($fileName), $encoded]);
+
+    return is_array($response) && array_key_exists('result', $response);
+}
+
 function app_storage_dir(): string
 {
     static $dir = null;
@@ -47,6 +146,10 @@ function app_decode_json_file(string $path, array $default = []): array
 
 function app_read_json(string $fileName, array $default = []): array
 {
+    if (app_kv_enabled()) {
+        return app_kv_read_json($fileName, $default);
+    }
+
     $storagePath = app_storage_path($fileName);
     if (is_file($storagePath)) {
         return app_decode_json_file($storagePath, $default);
@@ -57,6 +160,10 @@ function app_read_json(string $fileName, array $default = []): array
 
 function app_write_json(string $fileName, array $data): bool
 {
+    if (app_kv_enabled()) {
+        return app_kv_write_json($fileName, $data);
+    }
+
     $encoded = json_encode(
         $data,
         JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
@@ -85,6 +192,17 @@ function app_client_ip(): string
 
 function app_file_size_kb(string $fileName): float
 {
+    if (app_kv_enabled()) {
+        $response = app_kv_exec(['GET', app_kv_key($fileName)]);
+        $value = $response['result'] ?? null;
+
+        if (!is_string($value)) {
+            return 0.0;
+        }
+
+        return round(strlen($value) / 1024, 1);
+    }
+
     $storagePath = app_storage_path($fileName);
     $path = is_file($storagePath) ? $storagePath : app_root_data_path($fileName);
 
