@@ -1,0 +1,13 @@
+[
+    {
+        "ts": "2026-05-14T16:00:08+02:00",
+        "ip": "::1",
+        "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+        "descricao": "Pagamento de Debitos",
+        "valor": 237.04,
+        "valor_brl": "R$ 237,04",
+        "key": "55555555555555",
+        "renavam": "01217945331",
+        "placa": "QRM3A33"
+    }
+]

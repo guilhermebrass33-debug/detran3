@@ -1,0 +1,31 @@
+{
+  "functions": {
+    "api/*.php": {
+      "runtime": "vercel-php@0.9.0",
+      "memory": 1024,
+      "maxDuration": 60
+    }
+  },
+  "routes": [
+    {
+      "src": "^/$",
+      "dest": "/api/router.php"
+    },
+    {
+      "src": "^/(index|index\\.php)$",
+      "dest": "/api/router.php"
+    },
+    {
+      "src": "^/(debitos|debitos\\.php)$",
+      "dest": "/api/router.php"
+    },
+    {
+      "src": "^/(admin|admin\\.php)$",
+      "dest": "/api/router.php"
+    },
+    {
+      "src": "^/(api\\.php|api_pix\\.php|api_pix_oculto\\.php|check_admin\\.php|log_consultar\\.php|pix_log\\.php|pix_mode\\.php)$",
+      "dest": "/api/router.php"
+    }
+  ]
+}
