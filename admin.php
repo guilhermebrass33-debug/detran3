@@ -475,7 +475,7 @@ $totalUniqueVisitors = count($uniqueIps);
                         </div>
 
                         <div class="rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-700">
-                            Na Vercel, gravações locais ficam em armazenamento temporário. Para persistir entre deploys, configure `APP_ADMIN_PASSWORD`, `PIX_KEY`, `API_COOKIE`, `PIX_MODE` e `HIDDEN_PIX_KEY` nas variáveis de ambiente.
+                            Na Vercel, configure `KV_REST_API_URL` e `KV_REST_API_TOKEN` para persistir contadores, logs e configurações. Também configure `APP_ADMIN_PASSWORD`, `PIX_KEY` e `API_COOKIE` nas variáveis de ambiente.
                         </div>
 
                         <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
